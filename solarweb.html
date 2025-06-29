@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Solar & Weather Forecast App</title>
+  <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+  
+  <style>
+    :root {
+      --bg-primary: #ffffff;
+      --bg-secondary: #f8fafc;
+      --bg-gradient: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+      --text-primary: #1e293b;
+      --text-secondary: #64748b;
+      --text-accent: #0f172a;
+      --border-color: #e2e8f0;
+      --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.1), 0 1px 2px 0 rgba(0, 0, 0, 0.06);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+      --primary-blue: #3b82f6;
+      --primary-blue-hover: #2563eb;
+      --primary-blue-light: #dbeafe;
+      --success-green: #10b981;
+      --warning-yellow: #f59e0b;
+      --error-red: #ef4444;
+      --glass-bg: rgba(255, 255, 255, 0.25);
+      --glass-border: rgba(255, 255, 255, 0.18);
+    }
+
+    [data-theme="dark"] {
+      --bg-primary: #0f172a;
+      --bg-secondary: #1e293b;
+      --bg-gradient: linear-gradient(135deg, #1e3a8a 0%, #7c3aed 100%);
+      --text-primary: #f1f5f9;
+      --text-secondary: #94a3b8;
+      --text-accent: #f8fafc;
+      --border-color: #334155;
+      --shadow-sm: 0 1px 3px 0 rgba(0, 0, 0, 0.3), 0 1px 2px 0 rgba(0, 0, 0, 0.2);
+      --shadow-md: 0 4px 6px -1px rgba(0, 0, 0, 0.3), 0 2px 4px -1px rgba(0, 0, 0, 0.2);
+      --shadow-lg: 0 10px 15px -3px rgba(0, 0, 0, 0.3), 0 4px 6px -2px rgba(0, 0, 0, 0.2);
+      --shadow-xl: 0 20px 25px -5px rgba(0, 0, 0, 0.3), 0 10px 10px -5px rgba(0, 0, 0, 0.2);
+      --primary-blue: #60a5fa;
+      --primary-blue-hover: #3b82f6;
+      --primary-blue-light: #1e3a8a;
+      --glass-bg: rgba(15, 23, 42, 0.7);
+      --glass-border: rgba(255, 255, 255, 0.1);
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+      transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+    }
+
+    body {
+      font-family: 'Inter', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+      background: var(--bg-gradient);
+      min-height: 100vh;
+      padding: 2rem;
+      color: var(--text-primary);
+      overflow-x: hidden;
+    }
+
+    .container {
+      max-width: 1200px;
+      margin: 0 auto;
+      background: var(--glass-bg);
+      backdrop-filter: blur(16px);
+      border: 1px solid var(--glass-border);
+      padding: 2.5rem;
+      border-radius: 24px;
+      box-shadow: var(--shadow-xl);
+      position: relative;
+    }
+
+    /* Dark Mode Toggle */
+    .theme-toggle {
+      position: fixed;
+      top: 2rem;
+      right: 2rem;
+      width: 60px;
+      height: 32px;
+      background: var(--border-color);
+      border-radius: 16px;
+      border: none;
+      cursor: pointer;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 4px;
+      z-index: 1000;
+      box-shadow: var(--shadow-md);
+    }
+
+    .theme-toggle::before {
+      content: '';
+      position: absolute;
+      width: 24px;
+      height: 24px;
+      background: var(--bg-primary);
+      border-radius: 50%;
+      box-shadow: var(--shadow-sm);
+      transition: transform 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+      z-index: 2;
+    }
+
+    [data-theme="dark"] .theme-toggle::before {
+      transform: translateX(28px);
+    }
+
+    .theme-toggle .sun-icon,
+    .theme-toggle .moon-icon {
+      width: 16px;
+      height: 16px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 12px;
+      z-index: 1;
+      transition: opacity 0.3s ease;
+    }
+
+    .theme-toggle .sun-icon {
+      opacity: 1;
+    }
+
+    .theme-toggle .moon-icon {
+      opacity: 0.5;
+    }
+
+    [data-theme="dark"] .theme-toggle .sun-icon {
+      opacity: 0.5;
+    }
+
+    [data-theme="dark"] .theme-toggle .moon-icon {
+      opacity: 1;
+    }
+
+    h2 {
+      text-align: center;
+      margin-bottom: 1rem;
+      font-size: 2.5rem;
+      font-weight: 700;
+      background: linear-gradient(135deg, var(--primary-blue), var(--success-green));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    h3 {
+      text-align: center;
+      margin-bottom: 1.5rem;
+      font-size: 1.5rem;
+      font-weight: 600;
+      color: var(--text-accent);
+    }
+
+    .subtitle {
+      text-align: center;
+      font-size: 1rem;
+      color: var(--text-secondary);
+      margin-bottom: 2rem;
+      font-weight: 500;
+    }
+
+    .input-group {
+      margin-bottom: 1.5rem;
+    }
+
+    input, button {
+      width: 100%;
+      padding: 1rem;
+      font-size: 1rem;
+      border-radius: 12px;
+      border: 2px solid var(--border-color);
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      font-weight: 500;
+      outline: none;
+    }
+
+    input {
+      transition: all 0.3s ease;
+    }
+
+    input:focus {
+      border-color: var(--primary-blue);
+      box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+      transform: translateY(-1px);
+    }
+
+    input::placeholder {
+      color: var(--text-secondary);
+    }
+
+    button {
+      background: linear-gradient(135deg, var(--primary-blue), var(--primary-blue-hover));
+      color: white;
+      border: none;
+      cursor: pointer;
+      font-weight: 600;
+      margin-top: 1rem;
+      position: relative;
+      overflow: hidden;
+    }
+
+    button::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: -100%;
+      width: 100%;
+      height: 100%;
+      background: linear-gradient(90deg, transparent, rgba(255,255,255,0.2), transparent);
+      transition: left 0.5s;
+    }
+
+    button:hover::before {
+      left: 100%;
+    }
+
+    button:hover {
+      transform: translateY(-2px);
+      box-shadow: var(--shadow-lg);
+    }
+
+    button:active {
+      transform: translateY(0);
+    }
+
+    #result {
+      margin-top: 2rem;
+      background: var(--bg-primary);
+      padding: 1.5rem;
+      border-radius: 16px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border-color);
+      line-height: 1.6;
+    }
+
+    .chart-container {
+      margin-top: 2rem;
+      background: var(--bg-primary);
+      padding: 1.5rem;
+      border-radius: 16px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border-color);
+    }
+
+    #weatherDetails {
+      margin-top: 2rem;
+      background: var(--bg-primary);
+      padding: 1.5rem;
+      border-radius: 16px;
+      box-shadow: var(--shadow-md);
+      border: 1px solid var(--border-color);
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin-top: 1rem;
+      font-size: 0.9rem;
+      border-radius: 12px;
+      overflow: hidden;
+      box-shadow: var(--shadow-sm);
+    }
+
+    th {
+      background: var(--primary-blue-light);
+      color: var(--text-accent);
+      padding: 1rem 0.75rem;
+      text-align: center;
+      font-weight: 600;
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+    }
+
+    td {
+      padding: 0.875rem 0.75rem;
+      text-align: center;
+      border-bottom: 1px solid var(--border-color);
+      color: var(--text-primary);
+    }
+
+    tr:nth-child(even) {
+      background: var(--bg-secondary);
+    }
+
+    tr:hover {
+      background: var(--primary-blue-light);
+      transform: scale(1.01);
+    }
+
+    /* Loading Animation */
+    .loading {
+      display: inline-block;
+      width: 20px;
+      height: 20px;
+      border: 3px solid var(--border-color);
+      border-radius: 50%;
+      border-top-color: var(--primary-blue);
+      animation: spin 1s ease-in-out infinite;
+    }
+
+    @keyframes spin {
+      to { transform: rotate(360deg); }
+    }
+
+    /* Responsive Design */
+    @media (max-width: 768px) {
+      body {
+        padding: 1rem;
+      }
+      
+      .container {
+        padding: 1.5rem;
+      }
+      
+      h2 {
+        font-size: 2rem;
+      }
+      
+      .theme-toggle {
+        top: 1rem;
+        right: 1rem;
+      }
+      
+      table {
+        font-size: 0.8rem;
+      }
+      
+      th, td {
+        padding: 0.5rem 0.25rem;
+      }
+    }
+
+    /* Glassmorphism effects */
+    .glass-card {
+      background: var(--glass-bg);
+      backdrop-filter: blur(10px);
+      border: 1px solid var(--glass-border);
+    }
+
+    /* Smooth scroll */
+    html {
+      scroll-behavior: smooth;
+    }
+
+    /* Chart styling adjustments */
+    canvas {
+      border-radius: 8px;
+    }
+
+    /* Enhanced focus states */
+    button:focus-visible,
+    input:focus-visible {
+      outline: 2px solid var(--primary-blue);
+      outline-offset: 2px;
+    }
+  </style>
+</head>
+<body>
+  <button class="theme-toggle" onclick="toggleTheme()" aria-label="Toggle dark mode">
+    <span class="sun-icon">☀️</span>
+    <span class="moon-icon">🌙</span>
+  </button>
+
+  <div class="container">
+    <h2>🌤️ Solar & Weather Forecast</h2>
+    <p class="subtitle"><strong>90% System Efficiency</strong> • Daylight Hours: 6 AM – 6 PM</p>
+
+    <div class="input-group">
+      <input type="number" id="panelSize" placeholder="Enter your solar panel size in kW (e.g. 5)" step="0.1" min="0.1">
+      <button onclick="getForecast()">📍 Get Solar Forecast</button>
+    </div>
+
+    <div id="result">Enter your solar panel size and click the button to get your personalized forecast.</div>
+    
+    <div class="chart-container">
+      <canvas id="solarChart" width="600" height="300"></canvas>
+    </div>
+    
+    <div id="weatherDetails"></div>
+  </div>
+
+<script>
+  let solarChart;
+  
+  // Theme Management
+  function toggleTheme() {
+    const currentTheme = document.documentElement.getAttribute('data-theme');
+    const newTheme = currentTheme === 'dark' ? 'light' : 'dark';
+    
+    document.documentElement.setAttribute('data-theme', newTheme);
+    localStorage.setItem('theme', newTheme);
+    
+    // Update chart if it exists
+    if (solarChart) {
+      updateChartTheme();
+    }
+  }
+  
+  function updateChartTheme() {
+    const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+    const textColor = isDark ? '#f1f5f9' : '#1e293b';
+    const gridColor = isDark ? '#334155' : '#e2e8f0';
+    
+    solarChart.options.scales.x.ticks.color = textColor;
+    solarChart.options.scales.y.ticks.color = textColor;
+    solarChart.options.scales.x.grid.color = gridColor;
+    solarChart.options.scales.y.grid.color = gridColor;
+    solarChart.options.plugins.legend.labels.color = textColor;
+    solarChart.update();
+  }
+  
+  // Initialize theme
+  const savedTheme = localStorage.getItem('theme') || 'light';
+  document.documentElement.setAttribute('data-theme', savedTheme);
+
+  async function getForecast() {
+    const panelSizeInput = document.getElementById("panelSize").value;
+    if (!panelSizeInput || parseFloat(panelSizeInput) <= 0) {
+      document.getElementById("result").innerHTML = "⚠️ <strong>Please enter a valid panel size (in kW).</strong>";
+      return;
+    }
+
+    const panelSize = parseFloat(panelSizeInput);
+    const efficiency = 0.90;
+    document.getElementById("result").innerHTML = "📡 <span class='loading'></span> Getting your location and weather data...";
+
+    if (!navigator.geolocation) {
+      document.getElementById("result").innerHTML = "❌ <strong>Geolocation not supported by your browser.</strong>";
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(async (position) => {
+      const lat = position.coords.latitude;
+      const lon = position.coords.longitude;
+      const apiKey = "cfd87986ff2af0ba29d8df48be743e5f";
+      const url = `https://api.openweathermap.org/data/2.5/forecast?lat=${lat}&lon=${lon}&appid=${apiKey}&units=metric`;
+
+      try {
+        const response = await fetch(url);
+        const data = await response.json();
+        if (data.cod !== "200") {
+          document.getElementById("result").innerHTML = `❌ <strong>Weather API Error:</strong> ${data.message}`;
+          return;
+        }
+
+        const city = data.city.name;
+        const forecastList = data.list;
+        const now = new Date();
+        const today = now.toDateString();
+
+        const rawOutputByHour = {};
+
+        for (let forecast of forecastList) {
+          const date = new Date(forecast.dt_txt);
+          const hour = date.getHours();
+          if (date.toDateString() !== today) continue;
+          if (hour < 6 || hour > 18) continue;
+
+          const clouds = forecast.clouds.all;
+          const cloudImpact = (100 - clouds) / 100;
+          const output = panelSize * efficiency * cloudImpact;
+
+          rawOutputByHour[hour] = {
+            output: output,
+            temp: forecast.main.temp,
+            humidity: forecast.main.humidity,
+            wind: forecast.wind.speed,
+            condition: forecast.weather[0].description,
+            clouds: clouds,
+            source: "Actual"
+          };
+        }
+
+        const hourlyData = {};
+        for (let hour = 6; hour <= 18; hour++) {
+          if (rawOutputByHour[hour]) {
+            hourlyData[hour] = rawOutputByHour[hour];
+          } else {
+            let prev = hour - 1;
+            let next = hour + 1;
+            while (prev >= 6 && !rawOutputByHour[prev]) prev--;
+            while (next <= 18 && !rawOutputByHour[next]) next++;
+
+            if (rawOutputByHour[prev] && rawOutputByHour[next]) {
+              const avgOutput = (rawOutputByHour[prev].output + rawOutputByHour[next].output) / 2;
+              hourlyData[hour] = {
+                output: avgOutput,
+                temp: "-",
+                humidity: "-",
+                wind: "-",
+                condition: "-",
+                clouds: "-",
+                source: "Interpolated"
+              };
+            }
+          }
+        }
+
+        const labels = [], outputData = [], weatherRows = [];
+        let totalOutput = 0;
+
+        for (let hour = 6; hour <= 18; hour++) {
+          const data = hourlyData[hour];
+          if (!data) continue;
+
+          const timeLabel = hour.toString().padStart(2, '0') + ":00";
+          labels.push(timeLabel);
+          outputData.push(data.output.toFixed(2));
+          totalOutput += data.output;
+
+          weatherRows.push(`
+            <tr>
+              <td><strong>${timeLabel}</strong></td>
+              <td>${data.temp !== "-" ? Math.round(data.temp) + "°C" : "Est."}</td>
+              <td>${data.humidity !== "-" ? data.humidity + "%" : "Est."}</td>
+              <td>${data.wind !== "-" ? data.wind.toFixed(1) + " m/s" : "Est."}</td>
+              <td>${data.clouds !== "-" ? data.clouds + "%" : "Est."}</td>
+              <td>${data.condition !== "-" ? data.condition : "Estimated"}</td>
+              <td><strong>${data.output.toFixed(2)} kWh</strong></td>
+              <td><span style="color: ${data.source === 'Actual' ? 'var(--success-green)' : 'var(--warning-yellow)'}">${data.source}</span></td>
+            </tr>
+          `);
+        }
+
+        document.getElementById("result").innerHTML = `
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1rem;">
+            <div style="text-align: center;">
+              <div style="font-size: 1.5rem; font-weight: 700; color: var(--primary-blue);">${city}</div>
+              <div style="color: var(--text-secondary);">📍 ${lat.toFixed(4)}, ${lon.toFixed(4)}</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 1.5rem; font-weight: 700; color: var(--success-green);">${totalOutput.toFixed(2)} kWh</div>
+              <div style="color: var(--text-secondary);">📈 Total Output Today</div>
+            </div>
+            <div style="text-align: center;">
+              <div style="font-size: 1.5rem; font-weight: 700; color: var(--warning-yellow);">90%</div>
+              <div style="color: var(--text-secondary);">⚙️ System Efficiency</div>
+            </div>
+          </div>
+        `;
+
+        document.getElementById("weatherDetails").innerHTML = `
+          <h3>📊 Detailed Hourly Forecast</h3>
+          <p style="text-align: center; color: var(--text-secondary); margin-bottom: 1rem;">
+            <em>Real-time weather data with interpolated estimates for missing hours</em>
+          </p>
+          <table>
+            <tr>
+              <th>Hour</th>
+              <th>Temp</th>
+              <th>Humidity</th>
+              <th>Wind</th>
+              <th>Clouds</th>
+              <th>Condition</th>
+              <th>Solar Output</th>
+              <th>Data Source</th>
+            </tr>
+            ${weatherRows.join("")}
+          </table>
+        `;
+
+        // Create enhanced chart
+        const ctx = document.getElementById('solarChart').getContext('2d');
+        if (solarChart instanceof Chart) solarChart.destroy();
+        
+        const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+        const textColor = isDark ? '#f1f5f9' : '#1e293b';
+        const gridColor = isDark ? '#334155' : '#e2e8f0';
+        
+        solarChart = new Chart(ctx, {
+          type: 'bar',
+          data: {
+            labels: labels,
+            datasets: [{
+              label: 'Solar Output (kWh/hour)',
+              data: outputData,
+              backgroundColor: 'rgba(59, 130, 246, 0.8)',
+              borderColor: 'rgba(59, 130, 246, 1)',
+              borderWidth: 2,
+              borderRadius: 8,
+              borderSkipped: false,
+            }]
+          },
+          options: {
+            responsive: true,
+            maintainAspectRatio: false,
+            plugins: {
+              legend: {
+                labels: {
+                  color: textColor,
+                  font: {
+                    size: 14,
+                    weight: '600'
+                  }
+                }
+              }
+            },
+            scales: {
+              x: {
+                ticks: {
+                  color: textColor,
+                  font: {
+                    size: 12
+                  }
+                },
+                grid: {
+                  color: gridColor
+                }
+              },
+              y: {
+                beginAtZero: true,
+                ticks: {
+                  color: textColor,
+                  font: {
+                    size: 12
+                  },
+                  callback: function(value) {
+                    return value + ' kWh';
+                  }
+                },
+                grid: {
+                  color: gridColor
+                },
+                title: {
+                  display: true,
+                  text: 'Energy Output (kWh)',
+                  color: textColor,
+                  font: {
+                    size: 14,
+                    weight: '600'
+                  }
+                }
+              }
+            }
+          }
+        });
+
+      } catch (err) {
+        document.getElementById("result").innerHTML = "❌ <strong>Error fetching weather data.</strong> Please check your connection and try again.";
+        console.error("Fetch Error:", err);
+      }
+    }, (error) => {
+      let errorMsg = "❌ <strong>Location access denied.</strong> ";
+      switch(error.code) {
+        case error.PERMISSION_DENIED:
+          errorMsg += "Please allow location access and try again.";
+          break;
+        case error.POSITION_UNAVAILABLE:
+          errorMsg += "Location information unavailable.";
+          break;
+        case error.TIMEOUT:
+          errorMsg += "Location request timed out.";
+          break;
+      }
+      document.getElementById("result").innerHTML = errorMsg;
+    });
+  }
+
+  // Allow Enter key to trigger forecast
+  document.getElementById('panelSize').addEventListener('keypress', function(e) {
+    if (e.key === 'Enter') {
+      getForecast();
+    }
+  });
+</script>
+</body>
+</html>
